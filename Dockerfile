@@ -2,29 +2,31 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala dependências
+# Instala pacotes básicos
 RUN apt-get update && apt-get install -y \
     curl \
     bash \
     sudo \
     openssh-client \
-    iproute2 \
     net-tools \
-    htop \
+    iproute2 \
+    passwd \
     vim \
+    htop \
     && rm -rf /var/lib/apt/lists/*
 
-# Cria um usuário não-root chamado "vps" com home
+# Cria usuário vps e define senha
 RUN useradd -ms /bin/bash vps \
-    && echo "vps ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    && echo 'vps:root' | chpasswd \
+    && echo 'vps ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Copia o script de entrada
+# Copia script de entrada
 COPY entrypoint.sh /home/vps/entrypoint.sh
-RUN chmod +x /home/vps/entrypoint.sh
+RUN chown vps:vps /home/vps/entrypoint.sh && chmod +x /home/vps/entrypoint.sh
 
 # Muda para o usuário normal
 USER vps
 WORKDIR /home/vps
 
-# Executa o script com sshx como usuário comum
+# Roda sshx como o usuário normal
 CMD ["./entrypoint.sh"]
