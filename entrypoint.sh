@@ -1,7 +1,6 @@
 #!/bin/bash
 
-echo "🔧 Instalando sshx..."
+echo "🔐 A senha do usuário 'vps' é: root"
+echo "🔧 Iniciando sessão sshx..."
 curl -sSf https://sshx.io/get | sh
-
-echo "🚀 Iniciando sessão sshx como usuário comum..."
 exec sshx
