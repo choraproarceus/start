@@ -1,25 +1,30 @@
 FROM ubuntu:22.04
 
-# Evita prompts interativos
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalar curl, bash e outras ferramentas básicas
+# Instala dependências
 RUN apt-get update && apt-get install -y \
     curl \
     bash \
     sudo \
+    openssh-client \
     iproute2 \
     net-tools \
     htop \
     vim \
-    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar script de entrada
-COPY entrypoint.sh /entrypoint.sh
+# Cria um usuário não-root chamado "vps" com home
+RUN useradd -ms /bin/bash vps \
+    && echo "vps ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Dar permissão de execução
-RUN chmod +x /entrypoint.sh
+# Copia o script de entrada
+COPY entrypoint.sh /home/vps/entrypoint.sh
+RUN chmod +x /home/vps/entrypoint.sh
 
-# Executar o script ao iniciar o container
-CMD ["/entrypoint.sh"]
+# Muda para o usuário normal
+USER vps
+WORKDIR /home/vps
+
+# Executa o script com sshx como usuário comum
+CMD ["./entrypoint.sh"]
