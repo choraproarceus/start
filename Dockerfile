@@ -1,13 +1,24 @@
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
-# Instalar curl e bash (precisa para o script)
-RUN apt-get update && apt-get install -y curl bash && rm -rf /var/lib/apt/lists/*
+# Evita prompts interativos
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Copiar o script para o container
-COPY start.sh /start.sh
+# Instalar curl, bash e outras ferramentas básicas
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    sudo \
+    iproute2 \
+    net-tools \
+    htop \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
 
-# Dar permissão de execução ao script
-RUN chmod +x /start.sh
+# Copiar script de entrada
+COPY entrypoint.sh /entrypoint.sh
 
-# Rodar o script quando o container iniciar
-CMD ["/start.sh"]
+# Dar permissão de execução
+RUN chmod +x /entrypoint.sh
+
+# Executar o script ao iniciar o container
+CMD ["/entrypoint.sh"]
