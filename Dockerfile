@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     htop \
     vim \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar script de entrada
