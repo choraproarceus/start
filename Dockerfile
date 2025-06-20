@@ -2,31 +2,26 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala pacotes básicos
+# Instala XFCE, VNC, noVNC, etc.
 RUN apt-get update && apt-get install -y \
-    curl \
-    bash \
-    sudo \
-    openssh-client \
-    net-tools \
-    iproute2 \
-    passwd \
-    vim \
-    htop \
-    && rm -rf /var/lib/apt/lists/*
+  xfce4 xfce4-goodies x11vnc xvfb \
+  wget net-tools curl \
+  supervisor git python3 python3-pip \
+  novnc websockify \
+  && apt-get clean
 
-# Cria usuário vps e define senha
-RUN useradd -ms /bin/bash vps \
-    && echo 'vps:root' | chpasswd \
-    && echo 'vps ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# Cria usuário padrão
+RUN useradd -m ubuntu && echo 'ubuntu:ubuntu' | chpasswd
 
-# Copia script de entrada
-COPY entrypoint.sh /home/vps/entrypoint.sh
-RUN chown vps:vps /home/vps/entrypoint.sh && chmod +x /home/vps/entrypoint.sh
+# Define resoluções e configurações do VNC
+ENV DISPLAY=:1
+ENV RESOLUTION=1280x800
 
-# Muda para o usuário normal
-USER vps
-WORKDIR /home/vps
+# Copia o script de inicialização
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-# Roda sshx como o usuário normal
-CMD ["./entrypoint.sh"]
+# Expõe porta padrão do Railway (noVNC via web)
+EXPOSE 80
+
+CMD ["/start.sh"]
