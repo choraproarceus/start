@@ -7,16 +7,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-utils \
     cloud-image-utils \
     genisoimage \
-    novnc \
-    websockify \
     curl \
     unzip \
     openssh-client \
+    openssh-server \
     net-tools \
     netcat-openbsd \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /data /novnc /opt/qemu /cloud-init
+RUN mkdir -p /data /opt/qemu /cloud-init /var/run/sshd
 
 # Baixa a imagem do Ubuntu
 RUN curl -L https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img \
@@ -48,11 +48,8 @@ runcmd:\n\
 RUN genisoimage -output /opt/qemu/seed.iso -volid cidata -joliet -rock \
     /cloud-init/user-data /cloud-init/meta-data
 
-# Instala o noVNC
-RUN curl -L https://github.com/novnc/noVNC/archive/refs/tags/v1.3.0.zip -o /tmp/novnc.zip && \
-    unzip /tmp/novnc.zip -d /tmp && \
-    mv /tmp/noVNC-1.3.0/* /novnc && \
-    rm -rf /tmp/novnc.zip /tmp/noVNC-1.3.0
+# Instala o SSHX corretamente
+RUN curl -sSf https://sshx.io/get | sh
 
 # Script de inicialização
 RUN cat <<'EOF' > /start.sh
@@ -78,26 +75,19 @@ qemu-system-x86_64 \
     -drive file="$SEED",format=raw,if=virtio \
     -netdev user,id=net0,hostfwd=tcp::2222-:22 \
     -device virtio-net,netdev=net0 \
-    -vga virtio \
-    -vnc :0 \
+    -nographic \
     -daemonize
 
-# Start noVNC on port 6080, forwarding to VNC :0 (port 5900)
-websockify --web=/novnc 6080 localhost:5900 &
-
-echo "================================================"
-echo " 🖥️  VNC: http://localhost:6080/vnc.html"
-echo " 🔐 SSH: ssh root@localhost -p 2222"
-echo " 🧾 Login: root / root"
-echo "================================================"
-
+# Espera SSH da VM iniciar
 for i in {1..30}; do
   nc -z localhost 2222 && echo "✅ VM is ready!" && break
   echo "⏳ Waiting for SSH..."
   sleep 2
 done
 
-wait
+# Inicia sessão SSHX apontando para a porta SSH da VM
+echo "🔗 Starting SSHX session..."
+sshx --forward localhost:2222 --name ubuntu-vm
 EOF
 
 RUN chmod +x /start.sh
@@ -106,6 +96,6 @@ RUN chmod +x /start.sh
 # Ponto de montagem persistente: /data
 # Configure isso no painel da Railway (Deploy > Volumes)
 
-EXPOSE 6080 2222
+EXPOSE 2222
 
 CMD ["/start.sh"]
