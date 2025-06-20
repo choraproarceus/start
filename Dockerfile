@@ -1,32 +1,17 @@
-FROM ubuntu:22.04
+# Use a base image that supports systemd, for example, Ubuntu
+FROM ubuntu:20.04
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Install necessary packages
+RUN apt-get update && \
+    apt-get install -y shellinabox && \
+    apt-get install -y systemd && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    
+RUN echo 'root:root' | chpasswd
 
-# Instala pacotes básicos
-RUN apt-get update && apt-get install -y \
-    curl \
-    bash \
-    sudo \
-    openssh-client \
-    net-tools \
-    iproute2 \
-    passwd \
-    vim \
-    htop \
-    && rm -rf /var/lib/apt/lists/*
+# Expose the web-based terminal port
+EXPOSE 4200
 
-# Cria usuário vps e define senha
-RUN useradd -ms /bin/bash vps \
-    && echo 'vps:vps123' | chpasswd \
-    && echo 'vps ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-# Copia script de entrada
-COPY entrypoint.sh /home/vps/entrypoint.sh
-RUN chown vps:vps /home/vps/entrypoint.sh && chmod +x /home/vps/entrypoint.sh
-
-# Muda para o usuário normal
-USER vps
-WORKDIR /home/vps
-
-# Roda sshx como o usuário normal
-CMD ["./entrypoint.sh"]
+# Start shellinabox
+CMD ["/usr/bin/shellinaboxd", "-t", "-s", "/:LOGIN"]
